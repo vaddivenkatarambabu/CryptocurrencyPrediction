@@ -1,15 +1,28 @@
-{% extends "base.html" %}
-{% block content %}
-<h1 class="text-center">Cryptocurrency (Bitcoin) Price Predictor</h1>
-<form method="post" action="/" class="mt-4">
-    <div class="mb-3">
-        <label for="stock" class="form-label">Stock Ticker</label>
-        <input type="text" class="form-control" id="stock" name="stock" placeholder="e.g., BTC-USD" required>
-    </div>
-    <div class="mb-3">
-        <label for="no_of_days" class="form-label">Number of Days to Predict</label>
-        <input type="number" class="form-control" id="no_of_days" name="no_of_days" min="1" max="100" value="10" required>
-    </div>
-    <button type="submit" class="btn btn-primary">Predict</button>
-</form>
-{% endblock %}
+<!-- templates/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Crypto Prediction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>Cryptocurrency Prediction</h1>
+
+  <div>
+    <label>Ticker: <input id="ticker" value="BTC-USD"></label>
+    <label>History days: <input id="days" type="number" value="365"></label>
+    <button id="predictBtn">Predict</button>
+  </div>
+
+  <div id="status"></div>
+
+  <h3>Last prices (sample):</h3>
+  <pre id="history"></pre>
+
+  <h3>Predictions:</h3>
+  <pre id="preds"></pre>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

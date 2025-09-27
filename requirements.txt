@@ -1,7 +1,9 @@
-flask
-pandas
-numpy
-yfinance
-scikit-learn
-matplotlib
+Flask
 tensorflow
+numpy
+pandas
+yfinance
+matplotlib
+scikit-learn
+gunicorn
+waitress
