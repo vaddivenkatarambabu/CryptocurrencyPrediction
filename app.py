@@ -1,119 +1,129 @@
-# app.py
-import os
-import io
-import json
-from datetime import datetime, timedelta
-
-from flask import Flask, render_template, request, jsonify, send_file
-import numpy as np
+from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
-
-# Only import tf/keras once
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-
+import numpy as np
 import yfinance as yf
+from keras.models import load_model
+from sklearn.preprocessing import MinMaxScaler
+import matplotlib
 import matplotlib.pyplot as plt
+import io
+import base64
+from datetime import datetime
+
+# Set Matplotlib to non-interactive backend
+matplotlib.use('Agg')
 
 app = Flask(__name__)
 
-# --- Load model once ---
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.keras")
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}. Put model.keras in project root.")
+# Load Pre-trained Model
+model = load_model("model.keras")
 
-model = load_model(MODEL_PATH)
-model.summary()  # optional: prints model architecture to console
+# Helper Function to Convert Matplotlib Plots to HTML
+def plot_to_html(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    data = base64.b64encode(buf.getbuffer()).decode("ascii")
+    buf.close()
+    return f"data:image/png;base64,{data}"
 
-# --- Utility: fetch data ---
-def fetch_history(ticker: str, period_days: int = 365):
-    """
-    Fetch historical price data for ticker using yfinance.
-    Returns a pandas DataFrame indexed by date.
-    """
-    end = datetime.utcnow().date()
-    start = end - timedelta(days=period_days)
-    # yfinance sometimes uses network; ensure DNS/network is available
-    df = yf.download(ticker, start=start.isoformat(), end=(end + timedelta(days=1)).isoformat(), progress=False)
-    if df.empty:
-        raise RuntimeError(f"No data fetched for {ticker}")
-    return df
-
-# --- Utility: prepare input for model ---
-def prepare_input(df: pd.DataFrame, window: int = 60):
-    """
-    Example: create normalized sliding windows from close prices
-    Adapt this to match how you trained the model in the notebook.
-    """
-    # Use 'Close' column
-    close = df['Close'].values.astype('float32')
-    # simple normalization using last window mean/std (adjust per your training)
-    if len(close) < window:
-        raise ValueError("Not enough historical points for prediction.")
-    seq = close[-window:]
-    # reshape -> (1, window, 1)
-    seq = (seq - np.mean(seq)) / (np.std(seq) + 1e-9)
-    seq = seq.reshape((1, window, 1))
-    return seq
-
-# --- Routes ---
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
+    if request.method == "POST":
+        stock = request.form.get("stock")
+        no_of_days = int(request.form.get("no_of_days"))
+        return redirect(url_for("predict", stock=stock, no_of_days=no_of_days))
     return render_template("index.html")
 
-@app.route("/predict", methods=["POST"])
+@app.route("/predict")
 def predict():
-    try:
-        payload = request.get_json() or {}
-        ticker = payload.get("ticker", "BTC-USD")
-        days = int(payload.get("history_days", 365))
-        predict_steps = int(payload.get("predict_steps", 7))
+    stock = request.args.get("stock", "BTC-USD")
+    no_of_days = int(request.args.get("no_of_days", 10))
 
-        # fetch
-        df = fetch_history(ticker, period_days=days)
+    # Fetch Stock Data
+    end = datetime.now()
+    start = datetime(end.year - 10, end.month, end.day)
+    stock_data = yf.download(stock, start, end)
+    if stock_data.empty:
+        return render_template("result.html", error="Invalid stock ticker or no data available.")
 
-        # prepare input (ensure window equals what your model expects)
-        window = 60  # change to the window size used in training
-        x = prepare_input(df, window=window)
+    # Data Preparation
+    splitting_len = int(len(stock_data) * 0.9)
+    x_test = stock_data[['Close']][splitting_len:]
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaled_data = scaler.fit_transform(x_test)
 
-        # predict (model output shape depends on your model)
-        preds = model.predict(x)  # shape depends on model
+    x_data = []
+    y_data = []
+    for i in range(100, len(scaled_data)):
+        x_data.append(scaled_data[i - 100:i])
+        y_data.append(scaled_data[i])
 
-        # Postprocess preds (this is model-specific)
-        # If your model predicts normalized values, convert back using same scaler
-        preds_list = preds.flatten().tolist()
+    x_data = np.array(x_data)
+    y_data = np.array(y_data)
 
-        # respond with price history and preds
-        resp = {
-            "ticker": ticker,
-            "history": {
-                "dates": df.index.strftime("%Y-%m-%d").tolist()[-200:],  # trim if large
-                "close": df['Close'].round(6).tolist()[-200:]
-            },
-            "predictions": preds_list
-        }
-        return jsonify(resp)
+    # Predictions
+    predictions = model.predict(x_data)
+    inv_predictions = scaler.inverse_transform(predictions)
+    inv_y_test = scaler.inverse_transform(y_data)
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    # Prepare Data for Plotting
+    plotting_data = pd.DataFrame({
+        'Original Test Data': inv_y_test.flatten(),
+        'Predicted Test Data': inv_predictions.flatten()
+    }, index=x_test.index[100:])
 
-# Optional: route to serve a plot image (PNG)
-@app.route("/plot/<ticker>.png")
-def plot_png(ticker):
-    try:
-        df = fetch_history(ticker, period_days=365)
-        plt.figure(figsize=(8,4))
-        plt.plot(df.index, df['Close'])
-        plt.title(f"{ticker} Closing Price")
-        plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150)
-        buf.seek(0)
-        plt.close()
-        return send_file(buf, mimetype='image/png')
-    except Exception as e:
-        return f"Error: {e}", 500
+    # Generate Plots
+    # Plot 1: Original Closing Prices
+    fig1 = plt.figure(figsize=(15, 6))
+    plt.plot(stock_data['Close'], 'b', label='Close Price')
+    plt.title("Closing Prices Over Time")
+    plt.xlabel("Date")
+    plt.ylabel("Close Price")
+    plt.legend()
+    original_plot = plot_to_html(fig1)
+
+    # Plot 2: Original vs Predicted Test Data
+    fig2 = plt.figure(figsize=(15, 6))
+    plt.plot(plotting_data['Original Test Data'], label="Original Test Data")
+    plt.plot(plotting_data['Predicted Test Data'], label="Predicted Test Data", linestyle="--")
+    plt.legend()
+    plt.title("Original vs Predicted Closing Prices")
+    plt.xlabel("Date")
+    plt.ylabel("Close Price")
+    predicted_plot = plot_to_html(fig2)
+
+    # Plot 3: Future Predictions
+    last_100 = stock_data[['Close']].tail(100)
+    last_100_scaled = scaler.transform(last_100)
+
+    future_predictions = []
+    last_100_scaled = last_100_scaled.reshape(1, -1, 1)
+    for _ in range(no_of_days):
+        next_day = model.predict(last_100_scaled)
+        future_predictions.append(scaler.inverse_transform(next_day))
+        last_100_scaled = np.append(last_100_scaled[:, 1:, :], next_day.reshape(1, 1, -1), axis=1)
+
+    future_predictions = np.array(future_predictions).flatten()
+
+    fig3 = plt.figure(figsize=(15, 6))
+    plt.plot(range(1, no_of_days + 1), future_predictions, marker='o', label="Predicted Future Prices", color="purple")
+    plt.title("Future Close Price Predictions")
+    plt.xlabel("Days Ahead")
+    plt.ylabel("Predicted Close Price")
+    plt.grid(alpha=0.3)
+    plt.legend()
+    future_plot = plot_to_html(fig3)
+
+    return render_template(
+        "result.html",
+        stock=stock,
+        original_plot=original_plot,
+        predicted_plot=predicted_plot,
+        future_plot=future_plot,
+        enumerate =enumerate,
+        future_predictions=future_predictions
+    )
 
 if __name__ == "__main__":
-    # For local dev:
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(debug=True)
