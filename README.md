@@ -113,7 +113,3 @@ Access the application at: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 ## ⚖️ License
 
 This project is open-source. Feel free to use and modify it for research and educational purposes.
-
----
-
-I can also create a **visually appealing Markdown version with badges, GIF previews, and a table of contents** that makes it more professional for GitHub.
