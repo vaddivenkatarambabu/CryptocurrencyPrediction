@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
 import numpy as np
+import os
 import yfinance as yf
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
@@ -127,3 +128,4 @@ def predict():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

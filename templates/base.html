@@ -4,16 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Fonts for modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Base body dark theme */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        /* Navbar styling */
+        .navbar {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #90caf9 !important;
+            font-size: 1.4rem;
+            transition: color 0.3s;
+        }
+        .navbar-brand:hover {
+            color: #64b5f6 !important;
+        }
+
+        /* Container card style for content */
+        .container {
+            max-width: 900px;
+        }
+        .card-dark {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        /* Buttons */
+        .btn-custom {
+            background-color: #1976d2;
+            color: #fff;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-custom:hover {
+            background-color: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        /* Links */
+        a {
+            color: #90caf9;
+            transition: color 0.3s;
+        }
+        a:hover {
+            color: #64b5f6;
+            text-decoration: none;
+        }
+
+        /* Tables */
+        table.table {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        table.table th, table.table td {
+            text-align: center;
+            padding: 12px;
+        }
+        table.table thead {
+            background-color: #333;
+            color: #90caf9;
+        }
+        table.table tbody tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        table.table tbody tr:hover {
+            background-color: #3b3b3b;
+            transition: background-color 0.2s;
+        }
+
+        /* Images */
+        img.img-fluid {
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.3s;
+        }
+        img.img-fluid:hover {
+            transform: scale(1.02);
+        }
+
+        /* Footer (optional) */
+        footer {
+            text-align: center;
+            padding: 15px;
+            margin-top: 30px;
+            color: #888;
+        }
+    </style>
 </head>
 <body>
+    <!-- Navbar -->
     <nav class="navbar navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">Cryptocurrency (Bitcoin) Price Predictor</a>
         </div>
     </nav>
+
+    <!-- Main content container -->
     <div class="container mt-4">
         {% block content %}{% endblock %}
     </div>
+
+    <!-- Optional footer -->
+    <footer>
+        &copy; {{ current_year }} Cryptocurrency Price Predictor. All rights reserved.
+    </footer>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Optional: fade-in effect for all container cards
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.card-dark').forEach(card => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s ease';
+                setTimeout(() => {
+                    card.style.opacity = 1;
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,33 +1,153 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-center">Results for {{ stock }}</h2>
-{% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
-{% else %}
-    <h3>Original Closing Prices Over Time</h3>
-    <img src="{{ original_plot }}" class="img-fluid">
+<style>
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-    <h3>Original vs Predicted Test Data</h3>
-    <img src="{{ predicted_plot }}" class="img-fluid">
+    h2, h3 {
+        color: #90caf9;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 15px;
+    }
 
-    <h3>Future Close Price Predictions</h3>
-    <img src="{{ future_plot }}" class="img-fluid">
-    <table class="table table-striped mt-4">
-        <thead>
-            <tr>
-                <th>Day</th>
-                <th>Predicted Close Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for day, price in enumerate(future_predictions, start=1) %}
-            <tr>
-                <td>{{ day }}</td>
-                <td>{{ price | round(2) }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endif %}
-<a href="/" class="btn btn-secondary mt-4">Back to Home</a>
+    .alert-danger {
+        background-color: #b00020;
+        color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 20px auto;
+        max-width: 600px;
+    }
+
+    img.img-fluid {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 20px auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        transition: transform 0.3s;
+    }
+
+    img.img-fluid:hover {
+        transform: scale(1.02);
+    }
+
+    table.table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+        background-color: #1e1e1e;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    table.table th, table.table td {
+        padding: 12px 15px;
+        text-align: center;
+    }
+
+    table.table thead {
+        background-color: #333;
+        color: #90caf9;
+    }
+
+    table.table tbody tr:nth-child(even) {
+        background-color: #2a2a2a;
+    }
+
+    table.table tbody tr:hover {
+        background-color: #3b3b3b;
+        transition: background-color 0.2s;
+    }
+
+    a.btn {
+        display: inline-block;
+        background-color: #1976d2;
+        color: #fff;
+        padding: 12px 25px;
+        border-radius: 10px;
+        text-decoration: none;
+        text-align: center;
+        font-weight: bold;
+        transition: 0.3s;
+        margin: 30px auto;
+    }
+
+    a.btn:hover {
+        background-color: #1565c0;
+        transform: translateY(-2px);
+    }
+
+    /* Responsive table scroll */
+    .table-responsive {
+        overflow-x: auto;
+        margin-top: 20px;
+    }
+</style>
+
+<div class="container">
+    <h2>Results for {{ stock }}</h2>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% else %}
+        <h3>Original Closing Prices Over Time</h3>
+        <img src="{{ original_plot }}" class="img-fluid" alt="Original Closing Prices">
+
+        <h3>Original vs Predicted Test Data</h3>
+        <img src="{{ predicted_plot }}" class="img-fluid" alt="Original vs Predicted">
+
+        <h3>Future Close Price Predictions</h3>
+        <img src="{{ future_plot }}" class="img-fluid" alt="Future Predictions">
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Predicted Close Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day, price in enumerate(future_predictions, start=1) %}
+                    <tr>
+                        <td>{{ day }}</td>
+                        <td>{{ price | round(2) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <div style="text-align:center;">
+        <a href="/" class="btn">Back to Home</a>
+    </div>
+</div>
+
+<script>
+    // Optional: Smooth scrolling for images
+    const images = document.querySelectorAll('.img-fluid');
+    images.forEach(img => {
+        img.addEventListener('click', () => {
+            img.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+
+    // Optional: Fade-in animation for images
+    window.addEventListener('load', () => {
+        images.forEach(img => {
+            img.style.opacity = 0;
+            img.style.transition = 'opacity 1s ease-in-out';
+            setTimeout(() => img.style.opacity = 1, 100);
+        });
+    });
+</script>
 {% endblock %}
